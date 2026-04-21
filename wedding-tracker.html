@@ -247,6 +247,42 @@
             color: white;
         }
 
+        .attendee-buttons {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .count-button {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: bold;
+            transition: 0.2s;
+            background: #667eea;
+            color: white;
+            min-width: 28px;
+        }
+
+        .count-button:hover:not(:disabled) {
+            background: #5568d3;
+        }
+
+        .count-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .arrived-count {
+            min-width: 40px;
+            text-align: center;
+            font-weight: bold;
+            color: #333;
+        }
+
         .message {
             padding: 15px;
             border-radius: 5px;
@@ -487,7 +523,7 @@
                     count: parseInt(parts[countIdx]?.trim()) || 1,
                     table: parts[tableIdx]?.trim() || 'Unassigned',
                     group: groupIdx !== -1 ? parts[groupIdx]?.trim() || 'Unassigned' : 'Unassigned',
-                    arrived: false,
+                    arrivedCount: 0,
                     id: Math.random().toString(36).substr(2, 9)
                 };
 
@@ -563,10 +599,10 @@
                         </div>
                         <div class="group-tables">
                             ${groupTables.map(table => {
-                                const arrived = table.attendees.filter(a => a.arrived).length;
+                            const arrived = table.attendees.reduce((sum, a) => sum + a.arrivedCount, 0);
                                 const total = table.attendees.length;
                                 const totalPeople = table.attendees.reduce((sum, a) => sum + a.count, 0);
-                                const arrivedPeople = table.attendees.filter(a => a.arrived).reduce((sum, a) => sum + a.count, 0);
+                                const arrivedPeople = table.attendees.reduce((sum, a) => sum + a.arrivedCount, 0);
 
                                 return `
                                     <div class="table-circle">
@@ -585,15 +621,16 @@
                                             ${table.attendees.length === 0 ?
                                                 '<div style="text-align: center; color: #999; padding: 20px;">No attendees</div>' :
                                                 table.attendees.map(a => `
-                                                    <div class="attendee-item ${a.arrived ? 'arrived' : 'not-arrived'}">
+                                                    <div class="attendee-item ${a.arrivedCount > 0 ? 'arrived' : 'not-arrived'}">
                                                         <div>
                                                             <div class="attendee-name">${a.name}</div>
-                                                            <div class="attendee-count">${a.count} person${a.count > 1 ? 's' : ''}</div>
+                                                            <div class="attendee-count">${a.arrivedCount} of ${a.count} person${a.count > 1 ? 's' : ''}</div>
                                                         </div>
-                                                        <button class="attendee-toggle ${a.arrived ? 'mark-not-arrived' : 'mark-arrived'}"
-                                                                onclick="toggleAttendee('${a.id}')">
-                                                            ${a.arrived ? '✓ Arrived' : 'Mark'}
-                                                        </button>
+                                                        <div class="attendee-buttons">
+                                                            <button class="count-button" onclick="decrementAttendee('${a.id}')" ${a.arrivedCount === 0 ? 'disabled' : ''}>−</button>
+                                                            <div class="arrived-count">${a.arrivedCount}</div>
+                                                            <button class="count-button" onclick="incrementAttendee('${a.id}')" ${a.arrivedCount === a.count ? 'disabled' : ''}>+</button>
+                                                        </div>
                                                     </div>
                                                 `).join('')
                                             }
@@ -610,15 +647,33 @@
             container.innerHTML = html;
         }
 
-        // Toggle attendee arrival status
-        function toggleAttendee(id) {
+        // Increment attendee arrival count
+        function incrementAttendee(id) {
             for (let tableName in tables) {
                 const attendee = tables[tableName].attendees.find(a => a.id === id);
                 if (attendee) {
-                    attendee.arrived = !attendee.arrived;
-                    saveToStorage();
-                    renderTables();
-                    updateStats();
+                    if (attendee.arrivedCount < attendee.count) {
+                        attendee.arrivedCount++;
+                        saveToStorage();
+                        renderTables();
+                        updateStats();
+                    }
+                    return;
+                }
+            }
+        }
+
+        // Decrement attendee arrival count
+        function decrementAttendee(id) {
+            for (let tableName in tables) {
+                const attendee = tables[tableName].attendees.find(a => a.id === id);
+                if (attendee) {
+                    if (attendee.arrivedCount > 0) {
+                        attendee.arrivedCount--;
+                        saveToStorage();
+                        renderTables();
+                        updateStats();
+                    }
                     return;
                 }
             }
@@ -632,9 +687,7 @@
             for (let tableName in tables) {
                 tables[tableName].attendees.forEach(a => {
                     totalGuests += a.count;
-                    if (a.arrived) {
-                        arrivedGuests += a.count;
-                    }
+                    arrivedGuests += a.arrivedCount;
                 });
             }
 
