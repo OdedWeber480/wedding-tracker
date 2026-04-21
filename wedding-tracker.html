@@ -502,6 +502,7 @@
                 tables[`Table ${i}`] = {
                     name: `Table ${i}`,
                     group: 'Unassigned',
+                    capacity: 10,
                     attendees: []
                 };
             }
@@ -627,24 +628,35 @@
                         </div>
                         <div class="group-tables">
                             ${groupTables.map(table => {
-                            const arrived = table.attendees.reduce((sum, a) => sum + a.arrivedCount, 0);
+                                const arrived = table.attendees.reduce((sum, a) => sum + a.arrivedCount, 0);
                                 const total = table.attendees.length;
                                 const totalPeople = table.attendees.reduce((sum, a) => sum + a.count, 0);
                                 const arrivedPeople = table.attendees.reduce((sum, a) => sum + a.arrivedCount, 0);
 
+                                // Calculate final vs pending
+                                const finalConfirmed = table.attendees.filter(a => a.isFinal).reduce((sum, a) => sum + a.arrivedCount, 0);
+                                const finalTotal = table.attendees.filter(a => a.isFinal).reduce((sum, a) => sum + a.count, 0);
+                                const pendingTotal = table.attendees.filter(a => !a.isFinal).reduce((sum, a) => sum + a.count, 0);
+                                const allTableFinal = table.attendees.length > 0 && table.attendees.every(a => a.isFinal);
+                                const freePlaces = Math.max(0, table.capacity - finalConfirmed);
+
                                 return `
                                     <div class="table-circle">
-                                        <div class="table-name">${table.name}</div>
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <div class="table-name">${table.name}</div>
+                                            ${allTableFinal ? '<div style="background: #48bb78; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">Final</div>' : ''}
+                                        </div>
                                         <div class="table-stats">
                                             <div class="stat arrived">
-                                                <div class="stat-number">${arrivedPeople}</div>
-                                                <div class="stat-label">Arrived</div>
+                                                <div class="stat-number">${finalConfirmed}</div>
+                                                <div class="stat-label">Confirmed</div>
                                             </div>
                                             <div class="stat not-arrived">
-                                                <div class="stat-number">${totalPeople - arrivedPeople}</div>
-                                                <div class="stat-label">Expected</div>
+                                                <div class="stat-number">${pendingTotal}</div>
+                                                <div class="stat-label">Pending</div>
                                             </div>
                                         </div>
+                                        ${allTableFinal ? `<div style="text-align: center; font-size: 0.9rem; color: #666; margin-bottom: 10px;">Capacity: ${table.capacity} | Free: ${freePlaces}</div>` : ''}
                                         <div class="attendees-list">
                                             ${table.attendees.length === 0 ?
                                                 '<div style="text-align: center; color: #999; padding: 20px;">No attendees</div>' :
