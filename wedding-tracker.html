@@ -219,6 +219,16 @@
             border-left-color: #f56565;
         }
 
+        .attendee-item.final-arrived {
+            background: #f0fdf4;
+            border-left-color: #22c55e;
+        }
+
+        .attendee-item.final-not-coming {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+        }
+
         .attendee-name {
             font-weight: 600;
         }
@@ -276,11 +286,28 @@
             opacity: 0.6;
         }
 
-        .arrived-count {
-            min-width: 40px;
-            text-align: center;
+        .final-button {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.7rem;
             font-weight: bold;
-            color: #333;
+            transition: 0.2s;
+            background: #f97316;
+            color: white;
+        }
+
+        .final-button:hover {
+            background: #ea580c;
+        }
+
+        .final-button.is-final {
+            background: #6366f1;
+        }
+
+        .final-button.is-final:hover {
+            background: #4f46e5;
         }
 
         .message {
@@ -524,6 +551,7 @@
                     table: parts[tableIdx]?.trim() || 'Unassigned',
                     group: groupIdx !== -1 ? parts[groupIdx]?.trim() || 'Unassigned' : 'Unassigned',
                     arrivedCount: 0,
+                    isFinal: false,
                     id: Math.random().toString(36).substr(2, 9)
                 };
 
@@ -620,19 +648,28 @@
                                         <div class="attendees-list">
                                             ${table.attendees.length === 0 ?
                                                 '<div style="text-align: center; color: #999; padding: 20px;">No attendees</div>' :
-                                                table.attendees.map(a => `
-                                                    <div class="attendee-item ${a.arrivedCount > 0 ? 'arrived' : 'not-arrived'}">
-                                                        <div>
-                                                            <div class="attendee-name">${a.name}</div>
-                                                            <div class="attendee-count">${a.arrivedCount} of ${a.count} person${a.count > 1 ? 's' : ''}</div>
+                                                table.attendees.map(a => {
+                                                    let itemClass = 'attendee-item';
+                                                    if (a.isFinal) {
+                                                        itemClass += a.arrivedCount === a.count ? ' final-arrived' : ' final-not-coming';
+                                                    } else {
+                                                        itemClass += a.arrivedCount > 0 ? ' arrived' : ' not-arrived';
+                                                    }
+                                                    return `
+                                                        <div class="${itemClass}">
+                                                            <div>
+                                                                <div class="attendee-name">${a.name}</div>
+                                                                <div class="attendee-count">${a.arrivedCount} of ${a.count} person${a.count > 1 ? 's' : ''}</div>
+                                                            </div>
+                                                            <div class="attendee-buttons">
+                                                                <button class="count-button" onclick="decrementAttendee('${a.id}')" ${a.arrivedCount === 0 ? 'disabled' : ''}>−</button>
+                                                                <div class="arrived-count">${a.arrivedCount}</div>
+                                                                <button class="count-button" onclick="incrementAttendee('${a.id}')" ${a.arrivedCount === a.count ? 'disabled' : ''}>+</button>
+                                                                <button class="final-button ${a.isFinal ? 'is-final' : ''}" onclick="toggleFinal('${a.id}')">${a.isFinal ? 'Final' : 'Mark Final'}</button>
+                                                            </div>
                                                         </div>
-                                                        <div class="attendee-buttons">
-                                                            <button class="count-button" onclick="decrementAttendee('${a.id}')" ${a.arrivedCount === 0 ? 'disabled' : ''}>−</button>
-                                                            <div class="arrived-count">${a.arrivedCount}</div>
-                                                            <button class="count-button" onclick="incrementAttendee('${a.id}')" ${a.arrivedCount === a.count ? 'disabled' : ''}>+</button>
-                                                        </div>
-                                                    </div>
-                                                `).join('')
+                                                    `;
+                                                }).join('')
                                             }
                                         </div>
                                         <small style="color: #999;">${total} invitee${total !== 1 ? 's' : ''}</small>
@@ -654,6 +691,10 @@
                 if (attendee) {
                     if (attendee.arrivedCount < attendee.count) {
                         attendee.arrivedCount++;
+                        // Auto-finalize when all people arrive
+                        if (attendee.arrivedCount === attendee.count) {
+                            attendee.isFinal = true;
+                        }
                         saveToStorage();
                         renderTables();
                         updateStats();
@@ -679,6 +720,20 @@
             }
         }
 
+        // Toggle final status
+        function toggleFinal(id) {
+            for (let tableName in tables) {
+                const attendee = tables[tableName].attendees.find(a => a.id === id);
+                if (attendee) {
+                    attendee.isFinal = !attendee.isFinal;
+                    saveToStorage();
+                    renderTables();
+                    updateStats();
+                    return;
+                }
+            }
+        }
+
         // Update statistics
         function updateStats() {
             let totalGuests = 0;
@@ -686,8 +741,11 @@
 
             for (let tableName in tables) {
                 tables[tableName].attendees.forEach(a => {
-                    totalGuests += a.count;
-                    arrivedGuests += a.arrivedCount;
+                    // Only count final attendees in stats
+                    if (a.isFinal) {
+                        totalGuests += a.count;
+                        arrivedGuests += a.arrivedCount;
+                    }
                 });
             }
 
