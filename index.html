@@ -407,8 +407,6 @@
             gap: 20px;
         }
     </style>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
 <body>
     <div class="container">
@@ -416,12 +414,6 @@
             <h1>💍 Wedding Attendance Tracker</h1>
             <p>Real-time guest arrival tracking</p>
         </header>
-
-        <div id="firebaseBanner" style="display:none; background:#fefce8; border:1px solid #fde047; border-radius:8px; padding:14px 18px; margin-bottom:20px; color:#854d0e; font-size:0.95rem;">
-            ⚠️ <strong>Firebase not configured</strong> — data is saved locally on this device only.
-            To enable cross-device sync, fill in the <code>FIREBASE_CONFIG</code> in the page source.
-            See the <a href="https://console.firebase.google.com" target="_blank" style="color:#b45309;">Firebase Console</a> to create a free project.
-        </div>
 
         <div class="setup-section">
             <h2>Setup</h2>
@@ -472,69 +464,60 @@
     </div>
 
     <script>
-        // ─── Firebase config ───────────────────────────────────────────────
-        // Fill these in with values from:
-        //   Firebase Console → Project Settings → Your apps → SDK setup & config
-        const FIREBASE_CONFIG = {
-            apiKey: "",
-            authDomain: "",
-            databaseURL: "",   // e.g. https://your-project-default-rtdb.firebaseio.com
-            projectId: "",
-            storageBucket: "",
-            messagingSenderId: "",
-            appId: ""
-        };
-        // ───────────────────────────────────────────────────────────────────
-
-        function isFirebaseConfigured() {
-            return !!(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.databaseURL);
-        }
-
-        if (isFirebaseConfigured()) {
-            firebase.initializeApp(FIREBASE_CONFIG);
-        }
-
         // Global state
         let tables = {};
         let allAttendees = [];
         let groupOrder = ['Roy & Maya', 'Oded & Billy', 'Nitzan & Iris'];
+        let lastServerData = '';
 
-        function loadFromStorage() {
-            if (isFirebaseConfigured()) {
-                firebase.database().ref('weddingData').on('value', (snapshot) => {
-                    const data = snapshot.val();
-                    if (data) {
-                        tables = data.tables || {};
-                        allAttendees = data.allAttendees || [];
-                        document.getElementById('tableCount').value = Object.keys(tables).length || 10;
-                        if (Object.keys(tables).length > 0) {
-                            renderTables();
-                            updateStats();
-                        }
-                    }
-                });
-            } else {
-                document.getElementById('firebaseBanner').style.display = 'block';
-                const stored = localStorage.getItem('weddingData');
-                if (stored) {
-                    const data = JSON.parse(stored);
+        async function syncFromServer() {
+            try {
+                const res = await fetch('/api/data');
+                const data = await res.json();
+                const dataStr = JSON.stringify(data);
+                if (dataStr !== lastServerData && data.tables) {
+                    lastServerData = dataStr;
                     tables = data.tables || {};
                     allAttendees = data.allAttendees || [];
                     document.getElementById('tableCount').value = Object.keys(tables).length || 10;
+                    localStorage.setItem('weddingData', JSON.stringify(data));
                     if (Object.keys(tables).length > 0) {
                         renderTables();
                         updateStats();
                     }
                 }
-            }
+            } catch (e) { /* offline or running locally without server */ }
         }
 
-        function saveToStorage() {
+        function loadFromStorage() {
+            // Show cached data immediately for fast initial render
+            const stored = localStorage.getItem('weddingData');
+            if (stored) {
+                const data = JSON.parse(stored);
+                tables = data.tables || {};
+                allAttendees = data.allAttendees || [];
+                document.getElementById('tableCount').value = Object.keys(tables).length || 10;
+                if (Object.keys(tables).length > 0) {
+                    renderTables();
+                    updateStats();
+                }
+            }
+            // Sync from server and poll for updates from other devices
+            syncFromServer();
+            setInterval(syncFromServer, 5000);
+        }
+
+        async function saveToStorage() {
             const data = { tables, allAttendees };
             localStorage.setItem('weddingData', JSON.stringify(data));
-            if (isFirebaseConfigured()) {
-                firebase.database().ref('weddingData').set(data);
-            }
+            lastServerData = JSON.stringify(data);
+            try {
+                await fetch('/api/data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+            } catch (e) { /* save to localStorage only if server unavailable */ }
         }
 
         // Setup tables
@@ -839,14 +822,19 @@
         }
 
         // Reset data
-        function resetData() {
+        async function resetData() {
             if (confirm('Are you sure you want to reset all data?')) {
                 tables = {};
                 allAttendees = [];
                 localStorage.removeItem('weddingData');
-                if (isFirebaseConfigured()) {
-                    firebase.database().ref('weddingData').remove();
-                }
+                lastServerData = '';
+                try {
+                    await fetch('/api/data', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({})
+                    });
+                } catch (e) {}
                 document.getElementById('csvFile').value = '';
                 renderTables();
                 location.reload();
