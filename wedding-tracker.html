@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wedding Attendance Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .setup-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .setup-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .setup-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #555;
+            font-size: 0.95rem;
+        }
+
+        input[type="number"],
+        input[type="file"] {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus,
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+        }
+
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .table-circle {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .table-circle:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .table-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .table-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-label {
+            color: #999;
+            font-size: 0.8rem;
+        }
+
+        .stat.arrived .stat-number {
+            color: #48bb78;
+        }
+
+        .stat.not-arrived .stat-number {
+            color: #f56565;
+        }
+
+        .attendees-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .attendee-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f9f9f9;
+            border-left: 4px solid #ddd;
+        }
+
+        .attendee-item.arrived {
+            background: #f0fdf4;
+            border-left-color: #48bb78;
+        }
+
+        .attendee-item.not-arrived {
+            background: #fef2f2;
+            border-left-color: #f56565;
+        }
+
+        .attendee-name {
+            font-weight: 600;
+        }
+
+        .attendee-count {
+            color: #999;
+            font-size: 0.8rem;
+        }
+
+        .attendee-toggle {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: 0.2s;
+        }
+
+        .attendee-toggle.mark-arrived {
+            background: #48bb78;
+            color: white;
+        }
+
+        .attendee-toggle.mark-not-arrived {
+            background: #f56565;
+            color: white;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .message.info {
+            background: #dbeafe;
+            color: #0c4a6e;
+            border-left: 4px solid #0284c7;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #7c2d12;
+            border-left: 4px solid #f87171;
+        }
+
+        .message.success {
+            background: #f0fdf4;
+            color: #15803d;
+            border-left: 4px solid #22c55e;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .stats-summary {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            text-align: center;
+        }
+
+        .summary-stat {
+            padding: 15px;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+
+        .summary-stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .summary-stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💍 Wedding Attendance Tracker</h1>
+            <p>Real-time guest arrival tracking</p>
+        </header>
+
+        <div class="setup-section">
+            <h2>Setup</h2>
+            <div class="setup-controls">
+                <div class="control-group">
+                    <label for="tableCount">Number of Tables:</label>
+                    <input type="number" id="tableCount" min="1" max="50" value="10" placeholder="Enter number of tables">
+                </div>
+                <div class="control-group">
+                    <label for="csvFile">Upload Attendee List (CSV):</label>
+                    <input type="file" id="csvFile" accept=".csv">
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="btn-primary" onclick="setupTables()">Setup Tables</button>
+                <button class="btn-secondary" onclick="downloadTemplate()">Download CSV Template</button>
+                <button class="btn-secondary" onclick="resetData()">Reset All</button>
+            </div>
+            <div id="messageArea"></div>
+        </div>
+
+        <div id="statsSection" style="display: none;">
+            <div class="stats-summary">
+                <div class="summary-stat">
+                    <div class="summary-stat-value" id="totalGuests">0</div>
+                    <div class="summary-stat-label">Total Guests</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-value" id="arrivedGuests">0</div>
+                    <div class="summary-stat-label">Arrived</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-value" id="notArrivedGuests">0</div>
+                    <div class="summary-stat-label">Not Arrived</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-value" id="attendanceRate">0%</div>
+                    <div class="summary-stat-label">Arrival Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tablesContainer" class="tables-grid"></div>
+
+        <div id="emptyState" class="empty-state">
+            <p>👋 Welcome! Start by setting up the number of tables and uploading your attendee list.</p>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let tables = {};
+        let allAttendees = [];
+
+        // Initialize from localStorage
+        function loadFromStorage() {
+            const stored = localStorage.getItem('weddingData');
+            if (stored) {
+                const data = JSON.parse(stored);
+                tables = data.tables || {};
+                allAttendees = data.allAttendees || [];
+                document.getElementById('tableCount').value = Object.keys(tables).length || 10;
+                if (Object.keys(tables).length > 0) {
+                    renderTables();
+                    updateStats();
+                }
+            }
+        }
+
+        // Save to localStorage
+        function saveToStorage() {
+            localStorage.setItem('weddingData', JSON.stringify({ tables, allAttendees }));
+        }
+
+        // Setup tables
+        function setupTables() {
+            const count = parseInt(document.getElementById('tableCount').value);
+            if (isNaN(count) || count < 1) {
+                showMessage('Please enter a valid number of tables', 'error');
+                return;
+            }
+
+            tables = {};
+            for (let i = 1; i <= count; i++) {
+                tables[`Table ${i}`] = {
+                    name: `Table ${i}`,
+                    attendees: []
+                };
+            }
+
+            allAttendees.forEach(attendee => {
+                const tableName = attendee.table;
+                if (tables[tableName]) {
+                    tables[tableName].attendees.push(attendee);
+                }
+            });
+
+            saveToStorage();
+            renderTables();
+            updateStats();
+            showMessage(`${count} tables created successfully!`, 'success');
+        }
+
+        // Parse CSV and load attendees
+        function parseCSV(csvContent) {
+            const lines = csvContent.trim().split('\n');
+            if (lines.length < 2) {
+                showMessage('CSV file must have headers and at least one row', 'error');
+                return null;
+            }
+
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            const nameIdx = headers.indexOf('name');
+            const countIdx = headers.findIndex(h => h.includes('count') || h.includes('people') || h.includes('number'));
+            const tableIdx = headers.findIndex(h => h.includes('table') || h.includes('table_name'));
+
+            if (nameIdx === -1 || countIdx === -1 || tableIdx === -1) {
+                showMessage('CSV must have columns: name, count (or people/number), and table (or table_name)', 'error');
+                return null;
+            }
+
+            const attendees = [];
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const parts = line.split(',');
+                const attendee = {
+                    name: parts[nameIdx]?.trim() || '',
+                    count: parseInt(parts[countIdx]?.trim()) || 1,
+                    table: parts[tableIdx]?.trim() || 'Unassigned',
+                    arrived: false,
+                    id: Math.random().toString(36).substr(2, 9)
+                };
+
+                if (attendee.name) {
+                    attendees.push(attendee);
+                }
+            }
+
+            return attendees;
+        }
+
+        // Handle file upload
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const attendees = parseCSV(event.target.result);
+                if (attendees) {
+                    allAttendees = attendees;
+                    setupTables();
+                    showMessage(`Loaded ${attendees.length} attendees from CSV`, 'success');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // Render tables
+        function renderTables() {
+            const container = document.getElementById('tablesContainer');
+            const emptyState = document.getElementById('emptyState');
+            const statsSection = document.getElementById('statsSection');
+
+            if (Object.keys(tables).length === 0) {
+                container.innerHTML = '';
+                emptyState.style.display = 'block';
+                statsSection.style.display = 'none';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            statsSection.style.display = 'grid';
+
+            container.innerHTML = Object.values(tables).map(table => {
+                const arrived = table.attendees.filter(a => a.arrived).length;
+                const total = table.attendees.length;
+                const totalPeople = table.attendees.reduce((sum, a) => sum + a.count, 0);
+                const arrivedPeople = table.attendees.filter(a => a.arrived).reduce((sum, a) => sum + a.count, 0);
+
+                return `
+                    <div class="table-circle">
+                        <div class="table-name">${table.name}</div>
+                        <div class="table-stats">
+                            <div class="stat arrived">
+                                <div class="stat-number">${arrivedPeople}</div>
+                                <div class="stat-label">Arrived</div>
+                            </div>
+                            <div class="stat not-arrived">
+                                <div class="stat-number">${totalPeople - arrivedPeople}</div>
+                                <div class="stat-label">Expected</div>
+                            </div>
+                        </div>
+                        <div class="attendees-list">
+                            ${table.attendees.length === 0 ?
+                                '<div style="text-align: center; color: #999; padding: 20px;">No attendees</div>' :
+                                table.attendees.map(a => `
+                                    <div class="attendee-item ${a.arrived ? 'arrived' : 'not-arrived'}">
+                                        <div>
+                                            <div class="attendee-name">${a.name}</div>
+                                            <div class="attendee-count">${a.count} person${a.count > 1 ? 's' : ''}</div>
+                                        </div>
+                                        <button class="attendee-toggle ${a.arrived ? 'mark-not-arrived' : 'mark-arrived'}"
+                                                onclick="toggleAttendee('${a.id}')">
+                                            ${a.arrived ? '✓ Arrived' : 'Mark'}
+                                        </button>
+                                    </div>
+                                `).join('')
+                            }
+                        </div>
+                        <small style="color: #999;">${total} invitee${total !== 1 ? 's' : ''}</small>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Toggle attendee arrival status
+        function toggleAttendee(id) {
+            for (let tableName in tables) {
+                const attendee = tables[tableName].attendees.find(a => a.id === id);
+                if (attendee) {
+                    attendee.arrived = !attendee.arrived;
+                    saveToStorage();
+                    renderTables();
+                    updateStats();
+                    return;
+                }
+            }
+        }
+
+        // Update statistics
+        function updateStats() {
+            let totalGuests = 0;
+            let arrivedGuests = 0;
+
+            for (let tableName in tables) {
+                tables[tableName].attendees.forEach(a => {
+                    totalGuests += a.count;
+                    if (a.arrived) {
+                        arrivedGuests += a.count;
+                    }
+                });
+            }
+
+            const rate = totalGuests > 0 ? Math.round((arrivedGuests / totalGuests) * 100) : 0;
+
+            document.getElementById('totalGuests').textContent = totalGuests;
+            document.getElementById('arrivedGuests').textContent = arrivedGuests;
+            document.getElementById('notArrivedGuests').textContent = totalGuests - arrivedGuests;
+            document.getElementById('attendanceRate').textContent = rate + '%';
+        }
+
+        // Download CSV template
+        function downloadTemplate() {
+            const template = 'Name,Count,Table\nJohn Doe,2,Table 1\nJane Smith,1,Table 2\nBob Johnson,3,Table 1';
+            const blob = new Blob([template], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'wedding_attendees_template.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Show message
+        function showMessage(text, type) {
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = `<div class="message ${type}">${text}</div>`;
+            setTimeout(() => {
+                messageArea.innerHTML = '';
+            }, 4000);
+        }
+
+        // Reset data
+        function resetData() {
+            if (confirm('Are you sure you want to reset all data?')) {
+                tables = {};
+                allAttendees = [];
+                localStorage.removeItem('weddingData');
+                document.getElementById('csvFile').value = '';
+                renderTables();
+                location.reload();
+            }
+        }
+
+        // Initial load
+        loadFromStorage();
+    </script>
+</body>
+</html>
