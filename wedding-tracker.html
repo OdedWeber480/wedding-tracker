@@ -312,6 +312,37 @@
             color: #666;
             font-size: 0.9rem;
         }
+
+        .group-section {
+            margin-bottom: 40px;
+        }
+
+        .group-header {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #667eea;
+        }
+
+        .group-header h2 {
+            margin: 0 0 5px 0;
+            color: #333;
+            font-size: 1.5rem;
+        }
+
+        .group-header p {
+            margin: 0;
+            color: #999;
+            font-size: 0.95rem;
+        }
+
+        .group-tables {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
     </style>
 </head>
 <body>
@@ -362,7 +393,7 @@
             </div>
         </div>
 
-        <div id="tablesContainer" class="tables-grid"></div>
+        <div id="tablesContainer"></div>
 
         <div id="emptyState" class="empty-state">
             <p>👋 Welcome! Start by setting up the number of tables and uploading your attendee list.</p>
@@ -373,6 +404,7 @@
         // Global state
         let tables = {};
         let allAttendees = [];
+        let groupOrder = ['Roy & Maya', 'Oded & Billy', 'Nitzan & Iris'];
 
         // Initialize from localStorage
         function loadFromStorage() {
@@ -406,6 +438,7 @@
             for (let i = 1; i <= count; i++) {
                 tables[`Table ${i}`] = {
                     name: `Table ${i}`,
+                    group: 'Unassigned',
                     attendees: []
                 };
             }
@@ -413,6 +446,7 @@
             allAttendees.forEach(attendee => {
                 const tableName = attendee.table;
                 if (tables[tableName]) {
+                    tables[tableName].group = attendee.group;
                     tables[tableName].attendees.push(attendee);
                 }
             });
@@ -435,6 +469,7 @@
             const nameIdx = headers.indexOf('name');
             const countIdx = headers.findIndex(h => h.includes('count') || h.includes('people') || h.includes('number'));
             const tableIdx = headers.findIndex(h => h.includes('table') || h.includes('table_name'));
+            const groupIdx = headers.findIndex(h => h.includes('group'));
 
             if (nameIdx === -1 || countIdx === -1 || tableIdx === -1) {
                 showMessage('CSV must have columns: name, count (or people/number), and table (or table_name)', 'error');
@@ -451,6 +486,7 @@
                     name: parts[nameIdx]?.trim() || '',
                     count: parseInt(parts[countIdx]?.trim()) || 1,
                     table: parts[tableIdx]?.trim() || 'Unassigned',
+                    group: groupIdx !== -1 ? parts[groupIdx]?.trim() || 'Unassigned' : 'Unassigned',
                     arrived: false,
                     id: Math.random().toString(36).substr(2, 9)
                 };
@@ -480,7 +516,7 @@
             reader.readAsText(file);
         });
 
-        // Render tables
+        // Render tables grouped by group
         function renderTables() {
             const container = document.getElementById('tablesContainer');
             const emptyState = document.getElementById('emptyState');
@@ -496,46 +532,82 @@
             emptyState.style.display = 'none';
             statsSection.style.display = 'grid';
 
-            container.innerHTML = Object.values(tables).map(table => {
-                const arrived = table.attendees.filter(a => a.arrived).length;
-                const total = table.attendees.length;
-                const totalPeople = table.attendees.reduce((sum, a) => sum + a.count, 0);
-                const arrivedPeople = table.attendees.filter(a => a.arrived).reduce((sum, a) => sum + a.count, 0);
+            // Group tables by group name
+            const groupedTables = {};
+            groupOrder.forEach(group => {
+                groupedTables[group] = [];
+            });
+            groupedTables['Unassigned'] = [];
 
-                return `
-                    <div class="table-circle">
-                        <div class="table-name">${table.name}</div>
-                        <div class="table-stats">
-                            <div class="stat arrived">
-                                <div class="stat-number">${arrivedPeople}</div>
-                                <div class="stat-label">Arrived</div>
-                            </div>
-                            <div class="stat not-arrived">
-                                <div class="stat-number">${totalPeople - arrivedPeople}</div>
-                                <div class="stat-label">Expected</div>
-                            </div>
+            Object.values(tables).forEach(table => {
+                const group = table.group || 'Unassigned';
+                if (!groupedTables[group]) {
+                    groupedTables[group] = [];
+                }
+                groupedTables[group].push(table);
+            });
+
+            // Render each group
+            let html = '';
+            const allGroups = Object.keys(groupedTables).filter(g => groupedTables[g].length > 0);
+
+            allGroups.forEach(groupName => {
+                const groupTables = groupedTables[groupName];
+                const totalTablesInGroup = groupTables.length;
+
+                html += `
+                    <div class="group-section">
+                        <div class="group-header">
+                            <h2>${groupName}</h2>
+                            <p>${totalTablesInGroup} table${totalTablesInGroup !== 1 ? 's' : ''}</p>
                         </div>
-                        <div class="attendees-list">
-                            ${table.attendees.length === 0 ?
-                                '<div style="text-align: center; color: #999; padding: 20px;">No attendees</div>' :
-                                table.attendees.map(a => `
-                                    <div class="attendee-item ${a.arrived ? 'arrived' : 'not-arrived'}">
-                                        <div>
-                                            <div class="attendee-name">${a.name}</div>
-                                            <div class="attendee-count">${a.count} person${a.count > 1 ? 's' : ''}</div>
+                        <div class="group-tables">
+                            ${groupTables.map(table => {
+                                const arrived = table.attendees.filter(a => a.arrived).length;
+                                const total = table.attendees.length;
+                                const totalPeople = table.attendees.reduce((sum, a) => sum + a.count, 0);
+                                const arrivedPeople = table.attendees.filter(a => a.arrived).reduce((sum, a) => sum + a.count, 0);
+
+                                return `
+                                    <div class="table-circle">
+                                        <div class="table-name">${table.name}</div>
+                                        <div class="table-stats">
+                                            <div class="stat arrived">
+                                                <div class="stat-number">${arrivedPeople}</div>
+                                                <div class="stat-label">Arrived</div>
+                                            </div>
+                                            <div class="stat not-arrived">
+                                                <div class="stat-number">${totalPeople - arrivedPeople}</div>
+                                                <div class="stat-label">Expected</div>
+                                            </div>
                                         </div>
-                                        <button class="attendee-toggle ${a.arrived ? 'mark-not-arrived' : 'mark-arrived'}"
-                                                onclick="toggleAttendee('${a.id}')">
-                                            ${a.arrived ? '✓ Arrived' : 'Mark'}
-                                        </button>
+                                        <div class="attendees-list">
+                                            ${table.attendees.length === 0 ?
+                                                '<div style="text-align: center; color: #999; padding: 20px;">No attendees</div>' :
+                                                table.attendees.map(a => `
+                                                    <div class="attendee-item ${a.arrived ? 'arrived' : 'not-arrived'}">
+                                                        <div>
+                                                            <div class="attendee-name">${a.name}</div>
+                                                            <div class="attendee-count">${a.count} person${a.count > 1 ? 's' : ''}</div>
+                                                        </div>
+                                                        <button class="attendee-toggle ${a.arrived ? 'mark-not-arrived' : 'mark-arrived'}"
+                                                                onclick="toggleAttendee('${a.id}')">
+                                                            ${a.arrived ? '✓ Arrived' : 'Mark'}
+                                                        </button>
+                                                    </div>
+                                                `).join('')
+                                            }
+                                        </div>
+                                        <small style="color: #999;">${total} invitee${total !== 1 ? 's' : ''}</small>
                                     </div>
-                                `).join('')
-                            }
+                                `;
+                            }).join('')}
                         </div>
-                        <small style="color: #999;">${total} invitee${total !== 1 ? 's' : ''}</small>
                     </div>
                 `;
-            }).join('');
+            });
+
+            container.innerHTML = html;
         }
 
         // Toggle attendee arrival status
@@ -576,7 +648,7 @@
 
         // Download CSV template
         function downloadTemplate() {
-            const template = 'Name,Count,Table\nJohn Doe,2,Table 1\nJane Smith,1,Table 2\nBob Johnson,3,Table 1';
+            const template = 'Name,Count,Table,Group\nJohn Doe,2,Table 1,Roy & Maya\nJane Smith,1,Table 2,Roy & Maya\nBob Johnson,3,Table 1,Oded & Billy';
             const blob = new Blob([template], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
