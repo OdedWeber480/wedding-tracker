@@ -413,6 +413,10 @@
         <header>
             <h1>💍 Wedding Attendance Tracker</h1>
             <p>Real-time guest arrival tracking</p>
+            <div id="syncStatus" style="margin-top:8px; font-size:0.85rem; opacity:0.85;">
+                <span id="syncDot" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#aaa; margin-right:6px; vertical-align:middle;"></span>
+                <span id="syncText">Connecting…</span>
+            </div>
         </header>
 
         <div class="setup-section">
@@ -470,11 +474,18 @@
         let groupOrder = ['Roy & Maya', 'Oded & Billy', 'Nitzan & Iris'];
         let lastServerData = '';
 
+        function setSyncStatus(connected, message) {
+            document.getElementById('syncDot').style.background = connected ? '#48bb78' : '#f56565';
+            document.getElementById('syncText').textContent = message;
+        }
+
         async function syncFromServer() {
             try {
                 const res = await fetch('/api/data');
+                if (!res.ok) throw new Error(`Server responded ${res.status}`);
                 const data = await res.json();
                 const dataStr = JSON.stringify(data);
+                setSyncStatus(true, 'Synced');
                 if (dataStr !== lastServerData && data.tables) {
                     lastServerData = dataStr;
                     tables = data.tables || {};
@@ -486,7 +497,10 @@
                         updateStats();
                     }
                 }
-            } catch (e) { /* offline or running locally without server */ }
+            } catch (e) {
+                setSyncStatus(false, 'Not connected to server — changes save locally only');
+                console.error('Sync failed:', e.message);
+            }
         }
 
         function loadFromStorage() {
