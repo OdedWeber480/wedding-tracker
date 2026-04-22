@@ -392,6 +392,66 @@
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 20px;
         }
+
+        .search-section {
+            background: white;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-results {
+            display: none;
+            position: absolute;
+            left: 20px;
+            right: 20px;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+            z-index: 200;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .search-result-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-item:hover { background: #f5f3ff; }
+
+        @keyframes highlight-fade {
+            0%   { background: #fef08a; border-left-color: #eab308; }
+            100% { background: inherit; }
+        }
+
+        .attendee-highlight {
+            animation: highlight-fade 2.5s ease-out;
+        }
     </style>
 </head>
 <body>
@@ -411,6 +471,11 @@
                 <input type="file" id="csvFile" accept=".csv">
             </div>
             <div id="messageArea"></div>
+        </div>
+
+        <div id="searchSection" class="search-section" style="display:none;">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search guest by name…" oninput="searchGuest()" autocomplete="off">
+            <div id="searchResults" class="search-results"></div>
         </div>
 
         <div id="freePlacesSection" style="display: none; background: white; border-radius: 10px; padding: 20px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -609,6 +674,7 @@
 
             emptyState.style.display = 'none';
             statsSection.style.display = 'grid';
+            document.getElementById('searchSection').style.display = 'block';
 
             // Group tables by group name
             const groupedTables = {};
@@ -648,7 +714,7 @@
                                 const allTableFinal = table.attendees.length > 0 && table.attendees.every(a => a.isFinal);
 
                                 return `
-                                    <div class="table-circle">
+                                    <div class="table-circle" id="table-card-${table.name.replace(/[^a-zA-Z0-9]/g,'-')}">
                                         <div style="display: flex; justify-content: space-between; align-items: center;">
                                             <div class="table-name">${table.name}</div>
                                             ${allTableFinal ? '<div style="background: #48bb78; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">Final</div>' : ''}
@@ -682,7 +748,7 @@
                                                         itemClass += a.arrivedCount > 0 ? ' arrived' : ' not-arrived';
                                                     }
                                                     return `
-                                                        <div class="${itemClass}">
+                                                        <div class="${itemClass}" id="attendee-${a.id}">
                                                             <div>
                                                                 <div class="attendee-name">${a.name}</div>
                                                                 <div class="attendee-count">${a.arrivedCount} of ${a.count} person${a.count > 1 ? 's' : ''}</div>
@@ -877,6 +943,53 @@
                 location.reload();
             }
         }
+
+        function searchGuest() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            const resultsEl = document.getElementById('searchResults');
+            if (query.length < 2) { resultsEl.style.display = 'none'; return; }
+
+            const matches = [];
+            for (const tableName in tables) {
+                tables[tableName].attendees.forEach(a => {
+                    if (a.name.toLowerCase().includes(query)) {
+                        matches.push({ name: a.name, table: tableName, id: a.id });
+                    }
+                });
+            }
+
+            if (matches.length === 0) {
+                resultsEl.innerHTML = '<div style="padding:10px 15px; color:#999;">No guests found</div>';
+            } else {
+                resultsEl.innerHTML = matches.map(m => `
+                    <div class="search-result-item" onclick="navigateToGuest('${m.id}')">
+                        <span style="font-weight:600;">${m.name}</span>
+                        <span style="color:#999; font-size:0.85rem;">${m.table}</span>
+                    </div>
+                `).join('');
+            }
+            resultsEl.style.display = 'block';
+        }
+
+        function navigateToGuest(attendeeId) {
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('searchInput').value = '';
+
+            const attendeeEl = document.getElementById(`attendee-${attendeeId}`);
+            if (attendeeEl) {
+                attendeeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                attendeeEl.classList.remove('attendee-highlight');
+                void attendeeEl.offsetWidth; // force reflow to restart animation
+                attendeeEl.classList.add('attendee-highlight');
+                setTimeout(() => attendeeEl.classList.remove('attendee-highlight'), 2500);
+            }
+        }
+
+        document.addEventListener('click', e => {
+            if (!e.target.closest('.search-section')) {
+                document.getElementById('searchResults').style.display = 'none';
+            }
+        });
 
         // Initial load
         loadFromStorage();
