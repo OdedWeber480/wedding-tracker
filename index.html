@@ -666,17 +666,11 @@
                         </div>
                         <div class="group-tables">
                             ${groupTables.map(table => {
-                                const arrived = table.attendees.reduce((sum, a) => sum + a.arrivedCount, 0);
                                 const total = table.attendees.length;
-                                const totalPeople = table.attendees.reduce((sum, a) => sum + a.count, 0);
                                 const arrivedPeople = table.attendees.reduce((sum, a) => sum + a.arrivedCount, 0);
-
-                                // Calculate final vs pending
-                                const finalConfirmed = table.attendees.filter(a => a.isFinal).reduce((sum, a) => sum + a.arrivedCount, 0);
-                                const finalTotal = table.attendees.filter(a => a.isFinal).reduce((sum, a) => sum + a.count, 0);
                                 const pendingTotal = table.attendees.filter(a => !a.isFinal).reduce((sum, a) => sum + a.count, 0);
+                                const freePlaces = table.attendees.filter(a => a.isFinal).reduce((sum, a) => sum + Math.max(0, a.count - a.arrivedCount), 0);
                                 const allTableFinal = table.attendees.length > 0 && table.attendees.every(a => a.isFinal);
-                                const freePlaces = Math.max(0, table.capacity - finalConfirmed);
 
                                 return `
                                     <div class="table-circle">
@@ -686,15 +680,18 @@
                                         </div>
                                         <div class="table-stats">
                                             <div class="stat arrived">
-                                                <div class="stat-number">${finalConfirmed}</div>
-                                                <div class="stat-label">Confirmed</div>
+                                                <div class="stat-number">${arrivedPeople}</div>
+                                                <div class="stat-label">Arrived</div>
                                             </div>
                                             <div class="stat not-arrived">
                                                 <div class="stat-number">${pendingTotal}</div>
-                                                <div class="stat-label">Pending</div>
+                                                <div class="stat-label">Not known</div>
+                                            </div>
+                                            <div class="stat">
+                                                <div class="stat-number" style="color:#6366f1;">${freePlaces}</div>
+                                                <div class="stat-label">Free</div>
                                             </div>
                                         </div>
-                                        ${allTableFinal ? `<div style="text-align: center; font-size: 0.9rem; color: #666; margin-bottom: 10px;">Capacity: ${table.capacity} | Free: ${freePlaces}</div>` : ''}
                                         <div class="attendees-list">
                                             ${table.attendees.length === 0 ?
                                                 '<div style="text-align: center; color: #999; padding: 20px;">No attendees</div>' :
