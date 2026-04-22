@@ -796,10 +796,6 @@
                 if (attendee) {
                     if (attendee.arrivedCount < attendee.count) {
                         attendee.arrivedCount++;
-                        // Auto-finalize when all people arrive
-                        if (attendee.arrivedCount === attendee.count) {
-                            attendee.isFinal = true;
-                        }
                         saveToStorage();
                         renderTables();
                         updateStats();
