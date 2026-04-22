@@ -718,7 +718,7 @@
                         <div class="group-tables">
                             ${groupTables.map(table => {
                                 const total = table.attendees.length;
-                                const arrivedPeople = table.attendees.reduce((sum, a) => sum + a.arrivedCount, 0);
+                                const arrivedPeople = table.attendees.filter(a => a.isFinal).reduce((sum, a) => sum + a.arrivedCount, 0);
                                 const pendingTotal = table.attendees.filter(a => !a.isFinal).reduce((sum, a) => sum + a.count, 0);
                                 const freePlaces = table.attendees.filter(a => a.isFinal).reduce((sum, a) => sum + Math.max(0, a.count - a.arrivedCount), 0) - (table.usedFreePlaces || 0);
                                 const allTableFinal = table.attendees.length > 0 && table.attendees.every(a => a.isFinal);
