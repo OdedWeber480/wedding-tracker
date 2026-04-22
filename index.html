@@ -470,6 +470,16 @@
                 <label for="csvFile">Upload Attendee List (CSV):</label>
                 <input type="file" id="csvFile" accept=".csv">
             </div>
+            <div style="margin-top:15px; padding-top:15px; border-top:1px solid #eee;">
+                <div style="font-weight:600; color:#555; font-size:0.9rem; margin-bottom:10px;">Backup &amp; Restore</div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button class="btn-secondary" onclick="saveToJSON()">Save state as JSON</button>
+                    <label class="btn-secondary" style="cursor:pointer; margin:0;">
+                        Restore from JSON
+                        <input type="file" id="jsonFile" accept=".json" style="display:none;">
+                    </label>
+                </div>
+            </div>
             <div id="messageArea"></div>
         </div>
 
@@ -943,6 +953,47 @@
                 location.reload();
             }
         }
+
+        function saveToJSON() {
+            if (Object.keys(tables).length === 0) {
+                showMessage('Nothing to save yet.', 'error');
+                return;
+            }
+            const data = { tables, allAttendees };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const now = new Date();
+            const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}`;
+            a.download = `wedding-tracker-${ts}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('jsonFile').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        if (!data.tables) throw new Error('Invalid file');
+                        tables = data.tables;
+                        allAttendees = data.allAttendees || [];
+                        saveToStorage();
+                        renderTables();
+                        updateStats();
+                        showMessage('State restored from JSON file.', 'success');
+                    } catch (err) {
+                        showMessage('Failed to restore: invalid JSON file.', 'error');
+                    }
+                    e.target.value = '';
+                };
+                reader.readAsText(file);
+            });
+        });
 
         function searchGuest() {
             const query = document.getElementById('searchInput').value.trim().toLowerCase();
