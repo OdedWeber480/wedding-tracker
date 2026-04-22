@@ -790,11 +790,12 @@
 
         function updateFreePlaces() {
             const entries = Object.values(tables)
-                .map(table => ({
-                    name: table.name,
-                    free: table.attendees.filter(a => a.isFinal).reduce((sum, a) => sum + Math.max(0, a.count - a.arrivedCount), 0) - (table.usedFreePlaces || 0)
-                }))
-                .filter(e => e.free > 0)
+                .map(table => {
+                    const rawFree = table.attendees.filter(a => a.isFinal).reduce((sum, a) => sum + Math.max(0, a.count - a.arrivedCount), 0);
+                    const used = table.usedFreePlaces || 0;
+                    return { name: table.name, free: rawFree - used, used };
+                })
+                .filter(e => e.free > 0 || e.used > 0)
                 .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
             const section = document.getElementById('freePlacesSection');
@@ -810,22 +811,42 @@
                 <div style="background: #f5f3ff; border: 1px solid #c4b5fd; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-weight: 600; color: #333;">${e.name}</span>
-                        <span style="font-size: 1.4rem; font-weight: bold; color: #6366f1;">${e.free}</span>
                     </div>
-                    <button onclick="useFreePlace('${e.name}')" style="width: 100%; padding: 6px 0; background: #6366f1; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85rem; font-weight: 600;">Use free place</button>
+                    <div style="display: flex; justify-content: space-around; text-align: center;">
+                        <div>
+                            <div style="font-size: 1.3rem; font-weight: bold; color: #6366f1;">${e.free}</div>
+                            <div style="font-size: 0.75rem; color: #666;">Free</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.3rem; font-weight: bold; color: #f97316;">${e.used}</div>
+                            <div style="font-size: 0.75rem; color: #666;">Used</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <button onclick="useFreePlace('${e.name}')" ${e.free === 0 ? 'disabled' : ''} style="flex: 1; padding: 6px 0; background: ${e.free === 0 ? '#ccc' : '#6366f1'}; color: white; border: none; border-radius: 5px; cursor: ${e.free === 0 ? 'not-allowed' : 'pointer'}; font-size: 0.8rem; font-weight: 600;">Use</button>
+                        <button onclick="revertFreePlace('${e.name}')" ${e.used === 0 ? 'disabled' : ''} style="flex: 1; padding: 6px 0; background: ${e.used === 0 ? '#ccc' : '#f97316'}; color: white; border: none; border-radius: 5px; cursor: ${e.used === 0 ? 'not-allowed' : 'pointer'}; font-size: 0.8rem; font-weight: 600;">Revert</button>
+                    </div>
                 </div>
             `).join('');
         }
 
         function useFreePlace(tableName) {
             if (!tables[tableName]) return;
-            const maxFree = tables[tableName].attendees.filter(a => a.isFinal).reduce((sum, a) => sum + Math.max(0, a.count - a.arrivedCount), 0);
-            if ((tables[tableName].usedFreePlaces || 0) < maxFree) {
+            const rawFree = tables[tableName].attendees.filter(a => a.isFinal).reduce((sum, a) => sum + Math.max(0, a.count - a.arrivedCount), 0);
+            if ((tables[tableName].usedFreePlaces || 0) < rawFree) {
                 tables[tableName].usedFreePlaces = (tables[tableName].usedFreePlaces || 0) + 1;
                 saveToStorage();
                 renderTables();
                 updateStats();
             }
+        }
+
+        function revertFreePlace(tableName) {
+            if (!tables[tableName] || (tables[tableName].usedFreePlaces || 0) === 0) return;
+            tables[tableName].usedFreePlaces--;
+            saveToStorage();
+            renderTables();
+            updateStats();
         }
 
         // Show message
