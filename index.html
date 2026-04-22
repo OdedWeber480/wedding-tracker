@@ -846,9 +846,8 @@
 
             for (let tableName in tables) {
                 tables[tableName].attendees.forEach(a => {
-                    // Only count final attendees in stats
+                    totalGuests += a.count;
                     if (a.isFinal) {
-                        totalGuests += a.count;
                         arrivedGuests += a.arrivedCount;
                     }
                 });
