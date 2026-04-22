@@ -803,12 +803,12 @@
 
             section.style.display = 'block';
             list.innerHTML = entries.map(e => `
-                <div style="background: #f5f3ff; border: 1px solid #c4b5fd; border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
-                    <span style="font-weight: 600; color: #333;">${e.name}</span>
-                    <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="background: #f5f3ff; border: 1px solid #c4b5fd; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 600; color: #333;">${e.name}</span>
                         <span style="font-size: 1.4rem; font-weight: bold; color: #6366f1;">${e.free}</span>
-                        <button onclick="useFreePlace('${e.name}')" style="padding: 4px 10px; background: #6366f1; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.8rem; font-weight: 600; white-space: nowrap;">Use free place</button>
                     </div>
+                    <button onclick="useFreePlace('${e.name}')" style="width: 100%; padding: 6px 0; background: #6366f1; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85rem; font-weight: 600;">Use free place</button>
                 </div>
             `).join('');
         }
