@@ -639,7 +639,7 @@
                     count: parseInt(parts[countIdx]?.trim()) || 1,
                     table: parts[tableIdx]?.trim() || 'Unassigned',
                     group: groupIdx !== -1 ? parts[groupIdx]?.trim() || 'Unassigned' : 'Unassigned',
-                    arrivedCount: 0,
+                    arrivedCount: parseInt(parts[countIdx]?.trim()) || 1,
                     isFinal: false,
                     id: Math.random().toString(36).substr(2, 9)
                 };
