@@ -895,7 +895,11 @@
         function updateMissingChairs() {
             const entries = Object.values(tables)
                 .filter(table => (table.missingChairs || 0) > 0)
-                .map(table => ({ name: table.name, missing: table.missingChairs }))
+                .map(table => ({
+                    name: table.name,
+                    missing: table.missingChairs,
+                    expected: table.attendees.reduce((sum, a) => sum + a.count, 0)
+                }))
                 .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
             const section = document.getElementById('missingChairsSection');
@@ -910,9 +914,18 @@
             document.getElementById('missingChairsTotal').textContent = total;
             section.style.display = 'block';
             list.innerHTML = entries.map(e => `
-                <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
                     <span style="font-weight: 600; color: #333;">${e.name}</span>
-                    <span style="font-size: 1.3rem; font-weight: bold; color: #be123c;">${e.missing}</span>
+                    <div style="display: flex; gap: 16px; align-items: center;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.1rem; font-weight: bold; color: #555;">${e.expected}</div>
+                            <div style="font-size: 0.7rem; color: #888;">Expected</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.1rem; font-weight: bold; color: #be123c;">${e.missing}</div>
+                            <div style="font-size: 0.7rem; color: #888;">Missing</div>
+                        </div>
+                    </div>
                 </div>
             `).join('');
         }
