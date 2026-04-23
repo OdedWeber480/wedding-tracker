@@ -768,7 +768,10 @@
                                         </div>` : ''}
                                         <div style="display: flex; align-items: center; justify-content: space-between; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 6px; padding: 5px 10px; margin-bottom: 10px; font-size: 0.85rem; color: #be123c; font-weight: 600;">
                                             <span>Missing chairs: ${table.missingChairs || 0}</span>
-                                            <button onclick="incrementMissingChairs('${table.name}')" style="background: #be123c; color: white; border: none; border-radius: 4px; padding: 2px 10px; font-size: 1rem; cursor: pointer; font-weight: bold;">+</button>
+                                            <div style="display: flex; gap: 4px;">
+                                                <button onclick="decrementMissingChairs('${table.name}')" ${(table.missingChairs || 0) === 0 ? 'disabled' : ''} style="background: ${(table.missingChairs || 0) === 0 ? '#ccc' : '#be123c'}; color: white; border: none; border-radius: 4px; padding: 2px 10px; font-size: 1rem; cursor: ${(table.missingChairs || 0) === 0 ? 'not-allowed' : 'pointer'}; font-weight: bold;">-</button>
+                                                <button onclick="incrementMissingChairs('${table.name}')" style="background: #be123c; color: white; border: none; border-radius: 4px; padding: 2px 10px; font-size: 1rem; cursor: pointer; font-weight: bold;">+</button>
+                                            </div>
                                         </div>
                                         <div class="attendees-list">
                                             ${table.attendees.length === 0 ?
@@ -861,6 +864,15 @@
         function incrementMissingChairs(tableName) {
             if (tables[tableName]) {
                 tables[tableName].missingChairs = (tables[tableName].missingChairs || 0) + 1;
+                saveToStorage();
+                renderTables();
+                updateMissingChairs();
+            }
+        }
+
+        function decrementMissingChairs(tableName) {
+            if (tables[tableName] && (tables[tableName].missingChairs || 0) > 0) {
+                tables[tableName].missingChairs--;
                 saveToStorage();
                 renderTables();
                 updateMissingChairs();
