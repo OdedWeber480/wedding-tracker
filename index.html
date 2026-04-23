@@ -502,7 +502,7 @@
         </div>
 
         <div id="freePlacesSection" style="display: none; background: white; border-radius: 10px; padding: 20px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="color: #333; margin-bottom: 15px; font-size: 1.3rem;">Free Places</h2>
+            <h2 style="color: #333; margin-bottom: 15px; font-size: 1.3rem;">Free Places <span id="freePlacesTotal" style="background: #6366f1; color: white; border-radius: 12px; padding: 2px 10px; font-size: 1rem; margin-left: 8px;">0</span></h2>
             <div id="freePlacesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px;"></div>
         </div>
 
@@ -960,6 +960,8 @@
                 return;
             }
 
+            const freePlacesTotal = entries.reduce((sum, e) => sum + e.free, 0);
+            document.getElementById('freePlacesTotal').textContent = freePlacesTotal;
             section.style.display = 'block';
             list.innerHTML = entries.map(e => `
                 <div style="background: #f5f3ff; border: 1px solid #c4b5fd; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px;">
