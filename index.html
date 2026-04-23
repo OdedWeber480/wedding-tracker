@@ -493,6 +493,11 @@
             <div id="freePlacesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px;"></div>
         </div>
 
+        <div id="missingChairsSection" style="display: none; background: white; border-radius: 10px; padding: 20px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="color: #333; margin-bottom: 15px; font-size: 1.3rem;">Missing Chairs</h2>
+            <div id="missingChairsList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px;"></div>
+        </div>
+
         <div id="statsSection" style="display: none;">
             <div class="stats-summary">
                 <div class="summary-stat">
@@ -845,6 +850,7 @@
                 tables[tableName].missingChairs = (tables[tableName].missingChairs || 0) + 1;
                 saveToStorage();
                 renderTables();
+                updateMissingChairs();
             }
         }
 
@@ -870,6 +876,30 @@
             document.getElementById('attendanceRate').textContent = rate + '%';
 
             updateFreePlaces();
+            updateMissingChairs();
+        }
+
+        function updateMissingChairs() {
+            const entries = Object.values(tables)
+                .filter(table => (table.missingChairs || 0) > 0)
+                .map(table => ({ name: table.name, missing: table.missingChairs }))
+                .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
+            const section = document.getElementById('missingChairsSection');
+            const list = document.getElementById('missingChairsList');
+
+            if (entries.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+
+            section.style.display = 'block';
+            list.innerHTML = entries.map(e => `
+                <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 600; color: #333;">${e.name}</span>
+                    <span style="font-size: 1.3rem; font-weight: bold; color: #be123c;">${e.missing}</span>
+                </div>
+            `).join('');
         }
 
         function updateFreePlaces() {
